@@ -39,27 +39,27 @@ public class HitlistApiControllerTest extends ControllerTestBase {
 
 	@Test
 	public void invalidPath_correctErrorMessages() throws Exception {
-		_mvc.perform(getActive("NOPE", VALID_CASE_TYPE))
+		perform(getActive("NOPE", VALID_CASE_TYPE))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("message").value(CASE_MANAGEMENT_SYSTEM_NOPE))
 		;
-		_mvc.perform(getSnoozed("NOPE", VALID_CASE_TYPE))
+		perform(getSnoozed("NOPE", VALID_CASE_TYPE))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("message").value(CASE_MANAGEMENT_SYSTEM_NOPE))
 		;
-		_mvc.perform(getSummary("NOPE", VALID_CASE_TYPE))
+		perform(getSummary("NOPE", VALID_CASE_TYPE))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("message").value(CASE_MANAGEMENT_SYSTEM_NOPE))
 		;
-		_mvc.perform(getActive(VALID_CASE_MGT_SYS, "NOPE"))
+		perform(getActive(VALID_CASE_MGT_SYS, "NOPE"))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("message").value(CASE_TYPE_NOPE))
 		;
-		_mvc.perform(getSnoozed(VALID_CASE_MGT_SYS, "NOPE"))
+		perform(getSnoozed(VALID_CASE_MGT_SYS, "NOPE"))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("message").value(CASE_TYPE_NOPE))
 		;
-		_mvc.perform(getSummary(VALID_CASE_MGT_SYS, "NOPE"))
+		perform(getSummary(VALID_CASE_MGT_SYS, "NOPE"))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("message").value(CASE_TYPE_NOPE))
 		;
@@ -67,15 +67,15 @@ public class HitlistApiControllerTest extends ControllerTestBase {
 
 	@Test
 	public void validPath_noData_emptyResponses() throws Exception {
-		_mvc.perform(getActive(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
+		perform(getActive(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
 			.andExpect(status().isOk())
 			.andExpect(content().json("[]", true))
 		;
-		_mvc.perform(getSnoozed(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
+		perform(getSnoozed(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
 			.andExpect(status().isOk())
 			.andExpect(content().json("[]", true))
 		;
-		_mvc.perform(getSummary(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
+		perform(getSummary(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
 			.andExpect(status().isOk())
 			.andExpect(content().json("{}", true))
 		;
@@ -84,15 +84,15 @@ public class HitlistApiControllerTest extends ControllerTestBase {
 	@Test
 	public void getActive_withData_correctResponse() throws Exception {
 		initCaseData();
-		_mvc.perform(getSummary(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
+		perform(getSummary(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
 			.andExpect(status().isOk())
 			.andExpect(content().json("{'NEVER_SNOOZED': 1, 'CURRENTLY_SNOOZED': 1}", true))
 		;
-		_mvc.perform(getActive(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
+		perform(getActive(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
 			.andExpect(status().isOk())
 			.andExpect(content().json("[{'receiptNumber': 'FFFF1111', 'previouslySnoozed': false}]", false))
 		;
-		_mvc.perform(getSnoozed(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
+		perform(getSnoozed(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
 			.andExpect(status().isOk())
 			.andExpect(content().json("[{'receiptNumber': 'FFFF1112', 'snoozeInformation': {'snoozeReason': 'DONOTCARE'}}]", false))
 		;

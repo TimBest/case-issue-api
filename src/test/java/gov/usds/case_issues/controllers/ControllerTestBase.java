@@ -1,5 +1,9 @@
 package gov.usds.case_issues.controllers;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
+import java.net.URI;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -14,9 +18,17 @@ import gov.usds.case_issues.test_util.CaseIssueApiTestBase;
 public abstract class ControllerTestBase extends CaseIssueApiTestBase {
 
 	@Autowired
-	protected MockMvc _mvc;
+	private MockMvc _mvc;
 
 	protected ResultActions perform(RequestBuilder requestBuilder) throws Exception {
 		return _mvc.perform(requestBuilder);
+	}
+
+	protected ResultActions doGet(String url) throws Exception {
+		return perform(get(url));
+	}
+
+	protected ResultActions doGet(URI uri) throws Exception {
+		return perform(get(uri));
 	}
 }

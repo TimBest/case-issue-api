@@ -44,22 +44,22 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 		CaseType type = _dataService.ensureCaseTypeInitialized("T2", "Ahnold", "Metal and scary");
 		_dataService.initCase(_sys, SAMPLE_CASE, type, ZonedDateTime.now());
 
-		this._mvc.perform(detailsRequest("NOPE", "NOPE"))
+		this.perform(detailsRequest("NOPE", "NOPE"))
 			.andExpect(status().isNotFound());
-		this._mvc.perform(detailsRequest(VALID_SYS, "NOPE"))
+		this.perform(detailsRequest(VALID_SYS, "NOPE"))
 			.andExpect(status().isNotFound());
-		this._mvc.perform(detailsRequest(VALID_SYS, SAMPLE_CASE))
+		this.perform(detailsRequest(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isOk());
 	}
 
 	@Test
 	@SuppressWarnings("checkstyle:MagicNumber")
 	public void snoozeOperations_noCase_notFound() throws Exception {
-		_mvc.perform(getSnooze(VALID_SYS, "NOSUCHCASE"))
+		perform(getSnooze(VALID_SYS, "NOSUCHCASE"))
 			.andExpect(status().isNotFound());
-		_mvc.perform(updateSnooze(VALID_SYS, "NOSUCHCASE", "BECAUSE", 3, "yepyep"))
+		perform(updateSnooze(VALID_SYS, "NOSUCHCASE", "BECAUSE", 3, "yepyep"))
 			.andExpect(status().isNotFound());
-		_mvc.perform(endSnooze(VALID_SYS, "NOSUCHCASE"))
+		perform(endSnooze(VALID_SYS, "NOSUCHCASE"))
 			.andExpect(status().isNotFound());
 	}
 
@@ -69,23 +69,23 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 		CaseType type = _dataService.ensureCaseTypeInitialized("T2", "Ahnold", "Metal and scary");
 		String tomorrow = LocalDateTime.now().plusDays(1).truncatedTo(ChronoUnit.DAYS).withHour(3).toString();
 		_dataService.initCase(_sys, SAMPLE_CASE, type, ZonedDateTime.now());
-		_mvc.perform(getSnooze(VALID_SYS, SAMPLE_CASE))
+		perform(getSnooze(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isNoContent());
-		_mvc.perform(endSnooze(VALID_SYS, SAMPLE_CASE))
+		perform(endSnooze(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isNoContent());
-		_mvc.perform(updateSnooze(VALID_SYS, SAMPLE_CASE, "BECAUSE", 1, null))
+		perform(updateSnooze(VALID_SYS, SAMPLE_CASE, "BECAUSE", 1, null))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("snoozeReason").value("BECAUSE")) // THAT IS A TERRIBLE API FAIL
 			.andExpect(jsonPath("snoozeEnd").value(Matchers.startsWith(tomorrow)))  // THIS IS NOT GREAT EITHER
 			;
-		_mvc.perform(getSnooze(VALID_SYS, SAMPLE_CASE))
+		perform(getSnooze(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("snoozeReason").value("BECAUSE"))
 			.andExpect(jsonPath("snoozeEnd").value(Matchers.startsWith(tomorrow)))
 			;
-		_mvc.perform(endSnooze(VALID_SYS, SAMPLE_CASE))
+		perform(endSnooze(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isOk());
-		_mvc.perform(getSnooze(VALID_SYS, SAMPLE_CASE))
+		perform(getSnooze(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isNoContent());
 	}
 
@@ -95,11 +95,11 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 	public void snoozeWithNotes_validCase_notesStored() throws Exception {
 		CaseType type = _dataService.ensureCaseTypeInitialized("T2", "Ahnold", "Metal and scary");
 		_dataService.initCase(_sys, SAMPLE_CASE, type, ZonedDateTime.now());
-		_mvc.perform(getSnooze(VALID_SYS, SAMPLE_CASE))
+		perform(getSnooze(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isNoContent());
-		_mvc.perform(updateSnooze(VALID_SYS, SAMPLE_CASE, "Meh", 1, null,
+		perform(updateSnooze(VALID_SYS, SAMPLE_CASE, "Meh", 1, null,
 				new NoteRequest(NoteType.COMMENT, "Hello World", null)));
-		_mvc.perform(detailsRequest(VALID_SYS, SAMPLE_CASE))
+		perform(detailsRequest(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isOk())
 			.andExpect(content().json("{\"notes\": [{\"content\": \"Hello World\"}]}"))
 			;

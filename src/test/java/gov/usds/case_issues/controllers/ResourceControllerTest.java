@@ -2,7 +2,6 @@ package gov.usds.case_issues.controllers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -55,7 +54,7 @@ public class ResourceControllerTest extends ControllerTestBase {
 		MockHttpServletResponse response = doCreate(CaseManagementSystem.class, reqBody);
 		String caseManagerUrl = response.getRedirectedUrl();
 		assertEquals("http://localhost" + basePath + "/caseManagementSystems/MINE", caseManagerUrl);
-		_mvc.perform(get(caseManagerUrl))
+		doGet(caseManagerUrl)
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("name").value("MyCaseManager 3.0"))
 			.andExpect(jsonPath("$._links.self.href").value(caseManagerUrl))
@@ -68,7 +67,7 @@ public class ResourceControllerTest extends ControllerTestBase {
 		response = doCreate(CaseType.class, reqBody);
 		String caseTypeUrl = response.getRedirectedUrl();
 		assertEquals("http://localhost" + basePath + "/caseTypes/W-2", caseTypeUrl);
-		_mvc.perform(get(caseTypeUrl))
+		doGet(caseTypeUrl)
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("tag").value("W-2"))
 			.andExpect(jsonPath("_links.self.href").value(caseTypeUrl))
@@ -86,18 +85,18 @@ public class ResourceControllerTest extends ControllerTestBase {
 		reqBody.put("issueType", "Super old");
 		response = doCreate(CaseIssue.class, reqBody);
 		String issueUrl = response.getRedirectedUrl();
-		_mvc.perform(get(issueUrl))
+		doGet(issueUrl)
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("issueClosed").isEmpty());
 		reqBody = new JSONObject();
 		reqBody.put("issueClosed", "2019-07-10T18:11:00-04:00");
-		_mvc.perform(patch(issueUrl).content(reqBody.toString()))
+		perform(patch(issueUrl).content(reqBody.toString()))
 			.andExpect(status().is(HttpStatus.NO_CONTENT.value()))
 		;
 
 		@SuppressWarnings("checkstyle:MagicNumber")
 		ZonedDateTime closedTime = ZonedDateTime.of(2019, 7, 10, 18, 11, 0, 0, ZoneId.of("-04:00"));
-		String responseBody = _mvc.perform(get(issueUrl))
+		String responseBody = doGet(issueUrl)
 			.andExpect(status().isOk())
 			.andReturn()
 			.getResponse()
@@ -117,7 +116,7 @@ public class ResourceControllerTest extends ControllerTestBase {
 		reqBody.put("snoozeEnd", "2019-07-18T00:00:00-00:00");
 
 		String snoozeUrl = doCreate(CaseSnooze.class, reqBody).getRedirectedUrl();
-		_mvc.perform(get(snoozeUrl))
+		doGet(snoozeUrl)
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("snoozeReason").value("In the Mail"))
 		;
@@ -197,13 +196,13 @@ public class ResourceControllerTest extends ControllerTestBase {
 	@WithAnonymousUser
 	public void fetchCases_anonymous_forbidden() throws Exception {
 		// this should be "unauthorized" but coaxing the test harness to behave just right is not a high priority
-		perform(get(linkFor(TroubleCase.class))).andExpect(status().isForbidden());
+		doGet(linkFor(TroubleCase.class)).andExpect(status().isForbidden());
 	}
 
 	@Test
 	@WithMockUser
 	public void fetchCases_noAuthorities_forbidden() throws Exception {
-		perform(get(linkFor(TroubleCase.class))).andExpect(status().isForbidden());
+		doGet(linkFor(TroubleCase.class)).andExpect(status().isForbidden());
 	}
 
 	@Test
@@ -225,7 +224,7 @@ public class ResourceControllerTest extends ControllerTestBase {
 	private MockHttpServletResponse doCreate(Class<?> entityType, JSONObject body, HttpStatus expectedStatus) throws Exception {
 		MockHttpServletRequestBuilder postRequest = post(linkFor(entityType))
 			.content(body.toString());
-		return _mvc.perform(postRequest)
+		return perform(postRequest)
 			.andExpect(status().is(expectedStatus.value()))
 			.andReturn()
 			.getResponse()
@@ -237,7 +236,7 @@ public class ResourceControllerTest extends ControllerTestBase {
 	}
 
 	private void createFixtureEntities() throws Exception {
-		MockHttpServletResponse caseManagerCheck = _mvc.perform(get(getFixtureCaseManagerUrl()))
+		MockHttpServletResponse caseManagerCheck = doGet(getFixtureCaseManagerUrl())
 				.andReturn().getResponse();
 		if (caseManagerCheck.getStatus() == HttpStatus.NOT_FOUND.value()) {
 			LOG.debug("(Re)creating fixture case manager");
@@ -249,7 +248,7 @@ public class ResourceControllerTest extends ControllerTestBase {
 			doCreate(CaseManagementSystem.class, reqBody);
 		}
 
-		MockHttpServletResponse caseTypeCheck = _mvc.perform(get(getFixtureCaseTypeUrl()))
+		MockHttpServletResponse caseTypeCheck = doGet(getFixtureCaseTypeUrl())
 				.andReturn().getResponse();
 		if (caseTypeCheck.getStatus() == HttpStatus.NOT_FOUND.value()) {
 			LOG.debug("(Re)creating fixture case type");

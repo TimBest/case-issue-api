@@ -1,6 +1,5 @@
 package gov.usds.case_issues.controllers;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -18,7 +17,7 @@ public class SystemNavigationControllerTest extends ControllerTestBase {
 
 	@Test
 	public void getNavigationInformation_noData_emptyList() throws Exception {
-		perform(get("/api/navigation"))
+		doGet("/api/navigation")
 			.andExpect(status().isOk())
 			.andExpect(content().json("[]", true))
 			;
@@ -28,7 +27,7 @@ public class SystemNavigationControllerTest extends ControllerTestBase {
 	public void getNavigationInformation_trivialData_singleItemList() throws Exception {
 		_dataService.ensureCaseManagementSystemInitialized("YO", "Your case manager");
 		_dataService.ensureCaseTypeInitialized("W2", "Income Reporting", "That form you get every January");
-		perform(get("/api/navigation"))
+		doGet("/api/navigation")
 			.andExpect(status().isOk())
 			.andExpect(content().json("[{\"tag\": \"YO\", \"name\": \"Your case manager\", "
 					+ "\"caseTypes\": [{\"tag\":\"W2\", \"name\": \"Income Reporting\","

@@ -1,6 +1,5 @@
 package gov.usds.case_issues.controllers;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.Test;
@@ -13,10 +12,6 @@ public class ApiNavigatorPermissionsTest extends ControllerTestBase {
 
 	@Value("${spring.data.rest.basePath}")
 	private String _browserPath;
-
-	protected ResultActions browserGet(String relativePath) throws Exception {
-		return perform(get(_browserPath + relativePath));
-	}
 
 	@Test
 	public void getHalBrowser_anonymous_ok() throws Exception {
@@ -38,11 +33,15 @@ public class ApiNavigatorPermissionsTest extends ControllerTestBase {
 
 	@Test
 	public void getSwaggerUi_anonymous_ok() throws Exception {
-		perform(get("/swagger-ui.html")).andExpect(status().isOk());
+		doGet("/swagger-ui.html").andExpect(status().isOk());
 	}
 
 	@Test
 	public void getSwaggerApi_anonymous_ok() throws Exception {
-		perform(get("/v2/api-docs")).andExpect(status().isOk());
+		doGet("/v2/api-docs").andExpect(status().isOk());
+	}
+
+	private ResultActions browserGet(String relativePath) throws Exception {
+		return doGet(_browserPath + relativePath);
 	}
 }
