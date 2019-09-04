@@ -154,6 +154,7 @@ public class TroubleCase extends UpdatableEntity {
 		return caseCreation;
 	}
 
+	@JsonIgnore
 	public List<CaseIssue> getOpenIssues() {
 		return openIssues;
 	}
