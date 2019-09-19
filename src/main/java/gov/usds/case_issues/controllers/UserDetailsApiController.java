@@ -6,17 +6,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import springfox.documentation.annotations.ApiIgnore;
-
 /**
- * Development-only controller to see information about the current user, to validate that
- * authentication and authorization are at least sort of working.
+ * Controller to see information about the current user.
  */
 @RestController
-@RequestMapping("/user")
+@RequestMapping(UserDetailsApiController.USER_INFO_ENDPOINT)
 @Profile("auth-testing")
-@ApiIgnore
 public class UserDetailsApiController {
+
+	public static final String USER_INFO_ENDPOINT = "/api/users";
 
 	@GetMapping
 	public Object getUser(Authentication u) {

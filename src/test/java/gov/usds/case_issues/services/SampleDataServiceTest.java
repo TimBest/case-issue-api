@@ -13,16 +13,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import gov.usds.case_issues.config.SampleDataConfig;
 import gov.usds.case_issues.config.SampleDataFileSpec;
 import gov.usds.case_issues.config.SampleDataConfig.CaseManagementSystemDefinition;
-import gov.usds.case_issues.config.SampleDataConfig.NoteSubtypeDefinition;
+import gov.usds.case_issues.config.SampleDataConfig.AttachmentSubtypeDefinition;
 import gov.usds.case_issues.config.SampleDataConfig.TaggedResource;
 import gov.usds.case_issues.db.model.CaseManagementSystem;
 import gov.usds.case_issues.db.model.CaseType;
+import gov.usds.case_issues.db.model.AttachmentType;
 import gov.usds.case_issues.db.repositories.CaseIssueRepository;
 import gov.usds.case_issues.db.repositories.CaseManagementSystemRepository;
 import gov.usds.case_issues.db.repositories.CaseSnoozeRepository;
 import gov.usds.case_issues.test_util.CaseIssueApiTestBase;
 import gov.usds.case_issues.db.repositories.CaseTypeRepository;
-import gov.usds.case_issues.db.repositories.NoteSubtypeRepository;
+import gov.usds.case_issues.db.repositories.AttachmentSubtypeRepository;
 import gov.usds.case_issues.db.repositories.TroubleCaseRepository;
 import gov.usds.case_issues.services.CsvLoader;
 
@@ -38,7 +39,7 @@ public class SampleDataServiceTest extends CaseIssueApiTestBase {
 	@Autowired
 	private CaseTypeRepository _caseTypeRepo;
 	@Autowired
-	private NoteSubtypeRepository _subtypeRepository;
+	private AttachmentSubtypeRepository _subtypeRepository;
 	@Autowired
 	private TroubleCaseRepository _troubleCaseRespository;
 	@Autowired
@@ -78,12 +79,13 @@ public class SampleDataServiceTest extends CaseIssueApiTestBase {
 	@Test
 	public void saveSingleNoteSubType() {
 		SampleDataConfig loaderConfig = new SampleDataConfig();
-		NoteSubtypeDefinition noteDefiniton = new NoteSubtypeDefinition();
+		AttachmentSubtypeDefinition noteDefiniton = new AttachmentSubtypeDefinition();
 		noteDefiniton.setTag("tag");
 		noteDefiniton.setName("name");
 		noteDefiniton.setDescription("description");
+		noteDefiniton.setNoteType(AttachmentType.TAG);
 		loaderConfig.setNoteSubtypes(Arrays.asList(noteDefiniton));
-		_service.saveNoteTypes(loaderConfig);
+		_service.saveSubTypes(loaderConfig);
 		assertEquals(_subtypeRepository.count(), 1);
 	}
 

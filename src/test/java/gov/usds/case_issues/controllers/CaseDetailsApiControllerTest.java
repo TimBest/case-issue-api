@@ -1,7 +1,9 @@
 package gov.usds.case_issues.controllers;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,14 +24,16 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import gov.usds.case_issues.db.model.CaseManagementSystem;
 import gov.usds.case_issues.db.model.CaseType;
-import gov.usds.case_issues.db.model.NoteType;
-import gov.usds.case_issues.model.NoteRequest;
+import gov.usds.case_issues.db.model.AttachmentType;
+import gov.usds.case_issues.db.model.TroubleCase;
+import gov.usds.case_issues.model.AttachmentRequest;
 
 @WithMockUser(authorities = {"READ_CASES", "UPDATE_CASES"})
 public class CaseDetailsApiControllerTest extends ControllerTestBase {
 
 	private static final String VALID_SYS = "C1";
 	private static final String SAMPLE_CASE = "BH90210";
+	private static final String SAMPLE_CASE_DETAIL_JSON = "{\"receiptNumber\": \"" + SAMPLE_CASE + "\", \"snoozes\": []}";
 
 	private CaseManagementSystem _sys;
 
@@ -41,15 +45,37 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 
 	@Test
 	public void getDetails_pathErrors_notFound() throws Exception {
-		CaseType type = _dataService.ensureCaseTypeInitialized("T2", "Ahnold", "Metal and scary");
-		_dataService.initCase(_sys, SAMPLE_CASE, type, ZonedDateTime.now());
-
+		initSampleCase();
 		this.perform(detailsRequest("NOPE", "NOPE"))
 			.andExpect(status().isNotFound());
 		this.perform(detailsRequest(VALID_SYS, "NOPE"))
 			.andExpect(status().isNotFound());
+	}
+
+	@Test
+	public void getDetails_okCase_expectedResult() throws Exception {
+		initSampleCase();
 		this.perform(detailsRequest(VALID_SYS, SAMPLE_CASE))
-			.andExpect(status().isOk());
+			.andExpect(status().isOk())
+			.andExpect(content().json(SAMPLE_CASE_DETAIL_JSON))
+			;
+	}
+
+	@Test
+	public void getDetails_okCaseOkOrigin_okResult()  throws Exception {
+		initSampleCase();
+		perform(detailsRequest(VALID_SYS, SAMPLE_CASE).header("Origin", ORIGIN_HTTPS_OK))
+			.andExpect(status().isOk())
+			.andExpect(content().json(SAMPLE_CASE_DETAIL_JSON))
+			;
+	}
+
+	@Test
+	public void getDetails_okCaseBadOrigin_forbidden()  throws Exception {
+		initSampleCase();
+		perform(detailsRequest(VALID_SYS, SAMPLE_CASE).header("Origin", ORIGIN_NOT_OK))
+			.andExpect(status().isForbidden())
+			;
 	}
 
 	@Test
@@ -66,9 +92,8 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 	@Test
 	@SuppressWarnings("checkstyle:MagicNumber")
 	public void snoozeOperations_validCase_expectedResults() throws Exception {
-		CaseType type = _dataService.ensureCaseTypeInitialized("T2", "Ahnold", "Metal and scary");
+		initSampleCase();
 		String tomorrow = LocalDateTime.now().plusDays(1).truncatedTo(ChronoUnit.DAYS).withHour(3).toString();
-		_dataService.initCase(_sys, SAMPLE_CASE, type, ZonedDateTime.now());
 		perform(getSnooze(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isNoContent());
 		perform(endSnooze(VALID_SYS, SAMPLE_CASE))
@@ -89,20 +114,75 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 			.andExpect(status().isNoContent());
 	}
 
+	@Test
+	public void snoozeOperations_validCaseNoCsrf_forbidden() throws Exception {
+		TroubleCase tc = initSampleCase();
+		_dataService.snoozeCase(tc);
+		perform(updateSnoozeNoCsrf(VALID_SYS, SAMPLE_CASE, "EVIL", 1, null))
+			.andExpect(status().isForbidden());
+		perform(endSnoozeNoCsrf(VALID_SYS, SAMPLE_CASE))
+			.andExpect(status().isForbidden());
+		perform(addNoteNoCsrf(VALID_SYS, SAMPLE_CASE, new AttachmentRequest(AttachmentType.COMMENT, "What up?")))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	public void snoozeOperations_validCaseOkOrigin_ok() throws Exception {
+		TroubleCase tc = initSampleCase();
+		_dataService.snoozeCase(tc);
+		perform(updateSnooze(VALID_SYS, SAMPLE_CASE, "EVIL", 1, null).header("Origin", ORIGIN_HTTPS_OK))
+			.andExpect(status().isOk());
+		// add the note *then* do the deletion, plzkthx
+		perform(addNote(VALID_SYS, SAMPLE_CASE, new AttachmentRequest(AttachmentType.COMMENT, "What up?")).header("Origin", ORIGIN_HTTPS_OK))
+			.andExpect(status().is2xxSuccessful());
+		perform(endSnooze(VALID_SYS, SAMPLE_CASE).header("Origin", ORIGIN_HTTPS_OK))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	public void snoozeOperations_validCaseBadOrigin_forbidden() throws Exception {
+		TroubleCase tc = initSampleCase();
+		_dataService.snoozeCase(tc);
+		perform(updateSnooze(VALID_SYS, SAMPLE_CASE, "EVIL", 1, null).header("Origin", ORIGIN_NOT_OK))
+			.andExpect(status().isForbidden());
+		perform(endSnooze(VALID_SYS, SAMPLE_CASE).header("Origin", ORIGIN_NOT_OK))
+			.andExpect(status().isForbidden());
+		perform(addNote(VALID_SYS, SAMPLE_CASE, new AttachmentRequest(AttachmentType.COMMENT, "What up?")).header("Origin", ORIGIN_NOT_OK))
+			.andExpect(status().isForbidden());
+	}
 
 	@Test
 	@SuppressWarnings("checkstyle:MagicNumber")
 	public void snoozeWithNotes_validCase_notesStored() throws Exception {
-		CaseType type = _dataService.ensureCaseTypeInitialized("T2", "Ahnold", "Metal and scary");
-		_dataService.initCase(_sys, SAMPLE_CASE, type, ZonedDateTime.now());
+		initSampleCase();
 		perform(getSnooze(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isNoContent());
 		perform(updateSnooze(VALID_SYS, SAMPLE_CASE, "Meh", 1, null,
-				new NoteRequest(NoteType.COMMENT, "Hello World", null)));
+				new AttachmentRequest(AttachmentType.COMMENT, "Hello World", null)));
 		perform(detailsRequest(VALID_SYS, SAMPLE_CASE))
 			.andExpect(status().isOk())
 			.andExpect(content().json("{\"notes\": [{\"content\": \"Hello World\"}]}"))
 			;
+	}
+
+	@Test
+	public void addNoteToSnooze_snoozedCase_notesStored() throws Exception {
+		TroubleCase troubleCase = initSampleCase();
+		_dataService.snoozeCase(troubleCase);
+		perform(addNote(VALID_SYS, SAMPLE_CASE, new AttachmentRequest(AttachmentType.COMMENT, "Hello World", null)))
+			.andExpect(status().isAccepted());
+	}
+
+	@Test
+	public void addNoteToSnooze_activeCase_badRequest() throws Exception {
+		initSampleCase();
+		perform(addNote(VALID_SYS, SAMPLE_CASE, new AttachmentRequest(AttachmentType.COMMENT, "Hello World", null)))
+			.andExpect(status().isBadRequest());
+	}
+
+	private TroubleCase initSampleCase() {
+		CaseType type = _dataService.ensureCaseTypeInitialized("T2", "Ahnold", "Metal and scary");
+		return _dataService.initCase(_sys, SAMPLE_CASE, type, ZonedDateTime.now());
 	}
 
 	private MockHttpServletRequestBuilder detailsRequest(String systemTag, String receipt) {
@@ -114,11 +194,21 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 	}
 
 	private MockHttpServletRequestBuilder endSnooze(String systemTag, String receipt) {
+		return endSnoozeNoCsrf(systemTag, receipt).with(csrf());
+	}
+
+	private MockHttpServletRequestBuilder endSnoozeNoCsrf(String systemTag, String receipt) {
 		return delete("/api/caseDetails/{caseManagementSystemTag}/{receiptNumber}/activeSnooze", systemTag, receipt);
 	}
 
+
 	private MockHttpServletRequestBuilder updateSnooze(String systemTag, String receipt, String reason, int duration, String details,
-			NoteRequest... notes)
+			AttachmentRequest... notes) throws JSONException {
+		return updateSnoozeNoCsrf(systemTag, receipt, reason, duration, details, notes).with(csrf());
+	}
+
+	private MockHttpServletRequestBuilder updateSnoozeNoCsrf(String systemTag, String receipt, String reason, int duration, String details,
+			AttachmentRequest... notes)
 			throws JSONException {
 		JSONObject body = new JSONObject()
 			.put("reason", reason)
@@ -126,7 +216,7 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 			.put("duration", duration);
 		if (notes != null && notes.length > 0) {
 			JSONArray notesArray = new JSONArray();
-			for (NoteRequest req : notes) {
+			for (AttachmentRequest req : notes) {
 				JSONObject noteJson = new JSONObject();
 				noteJson.put("type", req.getNoteType().name());
 				noteJson.put("content", req.getContent());
@@ -140,4 +230,22 @@ public class CaseDetailsApiControllerTest extends ControllerTestBase {
 			.content(body.toString())
 			;
 	}
+
+	private MockHttpServletRequestBuilder addNote(String systemTag, String receipt, AttachmentRequest note)
+			throws JSONException {
+		return addNoteNoCsrf(systemTag, receipt, note).with(csrf());
+	}
+
+	private MockHttpServletRequestBuilder addNoteNoCsrf(String systemTag, String receipt, AttachmentRequest note)
+			throws JSONException {
+		JSONObject body = new JSONObject();
+		body.put("type", note.getNoteType().name());
+		body.put("content", note.getContent());
+		body.put("subtype", note.getSubtype());
+		return post("/api/caseDetails/{caseManagementSystemTag}/{receiptNumber}/activeSnooze/notes", systemTag, receipt)
+			.contentType("application/json")
+			.content(body.toString())
+			;
+	}
+
 }

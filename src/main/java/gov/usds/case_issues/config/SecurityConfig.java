@@ -7,19 +7,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 
 import gov.usds.case_issues.authorization.CaseIssuePermission;
+import gov.usds.case_issues.authorization.CustomAccessDeniedHandler;
 
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(securedEnabled=false, prePostEnabled=true)
 @Configuration
+@ConditionalOnWebApplication
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SecurityConfig.class);
@@ -52,7 +54,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 					.authenticated()
 				.and()
 			.csrf()
-				.ignoringRequestMatchers(AnyRequestMatcher.INSTANCE)
+				.and()
+			.exceptionHandling()
+				.accessDeniedHandler(new CustomAccessDeniedHandler())
 		;
 	}
 

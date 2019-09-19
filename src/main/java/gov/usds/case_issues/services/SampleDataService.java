@@ -17,14 +17,14 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import gov.usds.case_issues.config.SampleDataConfig;
 import gov.usds.case_issues.config.SampleDataFileSpec;
 import gov.usds.case_issues.config.SampleDataConfig.CaseManagementSystemDefinition;
-import gov.usds.case_issues.config.SampleDataConfig.NoteSubtypeDefinition;
+import gov.usds.case_issues.config.SampleDataConfig.AttachmentSubtypeDefinition;
 import gov.usds.case_issues.config.SampleDataConfig.TaggedResource;
 import gov.usds.case_issues.db.model.CaseManagementSystem;
 import gov.usds.case_issues.db.model.CaseType;
-import gov.usds.case_issues.db.model.NoteSubtype;
+import gov.usds.case_issues.db.model.AttachmentSubtype;
 import gov.usds.case_issues.db.repositories.CaseManagementSystemRepository;
 import gov.usds.case_issues.db.repositories.CaseTypeRepository;
-import gov.usds.case_issues.db.repositories.NoteSubtypeRepository;
+import gov.usds.case_issues.db.repositories.AttachmentSubtypeRepository;
 
 /**
  * Service object for loading sample data primarily for use in a dev environment
@@ -38,7 +38,7 @@ public class SampleDataService {
 	@Autowired
 	private CaseManagementSystemRepository _caseManagementSystemRepo;
 	@Autowired
-	private NoteSubtypeRepository _noteSubTypeRepo;
+	private AttachmentSubtypeRepository _subTypeRepo;
 
 	private static final Logger LOG = LoggerFactory.getLogger(SampleDataService.class);
 
@@ -59,13 +59,13 @@ public class SampleDataService {
 		}
 	}
 
-	public void saveNoteTypes(SampleDataConfig loaderConfig) {
-		for (NoteSubtypeDefinition spec : loaderConfig.getNoteSubtypes()) {
+	public void saveSubTypes(SampleDataConfig loaderConfig) {
+		for (AttachmentSubtypeDefinition spec : loaderConfig.getAttachmentSubtypes()) {
 			LOG.debug(
-				"Creating Cade Type {} ({}/{}) with noteType {}: URL is {}",
-				spec.getTag(), spec.getName(), spec.getDescription(), spec.getNoteType(), spec.getUrlTemplate()
+				"Creating attachment subtype {} ({}/{}) for attachment type {}: URL is {}",
+				spec.getTag(), spec.getName(), spec.getDescription(), spec.getAttachmentType(), spec.getUrlTemplate()
 			);
-			_noteSubTypeRepo.save(new NoteSubtype(spec.getTag(), spec.getNoteType(), spec.getName(), spec.getDescription(), spec.getUrlTemplate()));
+			_subTypeRepo.save(new AttachmentSubtype(spec.getTag(), spec.getAttachmentType(), spec.getName(), spec.getDescription(), spec.getUrlTemplate()));
 		}
 	}
 

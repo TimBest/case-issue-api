@@ -1,0 +1,9 @@
+spring:
+  main:
+    web-application-type: NONE
+  liquibase:
+    enabled: true
+  jpa.hibernate.ddl-auto: validate
+logging:
+  level:
+    org.hibernate.SQL: DEBUG

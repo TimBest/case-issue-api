@@ -8,6 +8,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.filter.OrderedFilter;
 import org.springframework.context.annotation.Bean;
@@ -29,9 +30,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * Configuration that customizes Spring MVC for our specific needs.
  */
 @Configuration
+@ConditionalOnWebApplication
 public class WebConfig implements WebMvcConfigurer {
 
 	private static final Logger LOG = LoggerFactory.getLogger(WebConfig.class);
+
+	/** A filter order that allows us to get in before the Spring Security filter chain. */
+	private static final int BEFORE_SECURITY = -100;
 
 	@Autowired
 	private WebConfigurationProperties _customProperties;
@@ -39,14 +44,21 @@ public class WebConfig implements WebMvcConfigurer {
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
 		String[] origins = _customProperties.getCorsOrigins();
+		// NOTE: Spring Data Rest (/resources) CORS configuration is in RestConfig, not here.
 		LOG.info("Configuring CORS allowed origins for API to {}", Arrays.toString(origins));
 		if (origins != null && 0 < origins.length) {
-			registry
-				.addMapping("/api/**")
+			registry.addMapping("/api/**")
 					.allowCredentials(true)
 					.allowedMethods("*")
-					.allowedOrigins(origins)
-			;
+					.allowedOrigins(origins);
+			registry.addMapping("/user")
+					.allowCredentials(true)
+					.allowedMethods("GET")
+					.allowedOrigins(origins);
+			registry.addMapping("/csrf")
+					.allowCredentials(true)
+					.allowedMethods("GET")
+					.allowedOrigins(origins);
 		}
 	}
 	
@@ -70,6 +82,14 @@ public class WebConfig implements WebMvcConfigurer {
 		reg.setOrder(OrderedFilter.HIGHEST_PRECEDENCE);
 		return reg;
 	}
+
+	@Bean
+	public FilterRegistrationBean<JsonRedirectPreventingFilter> getRedirectPreventingFilter() {
+		FilterRegistrationBean<JsonRedirectPreventingFilter> registration = new FilterRegistrationBean<>(new JsonRedirectPreventingFilter());
+		registration.setOrder(BEFORE_SECURITY);
+		return registration;
+	}
+
 	/**
 	 * Trivial {@link HttpMessageConverter} implementation to allow handler methods to accept
 	 * "text/csv" input as a raw input stream.

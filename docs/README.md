@@ -24,10 +24,10 @@ You can run unit tests as a group using `./gradlew test`, or run all checks usin
 
 To configure your IDE to report style violations, use the checkstyle configuration in [config/checkstyle/checkstyle.xml].
 
-## Running the Application
+## Starting the Application
 
 1. Using the command line
-   
+
      SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
 
 1. Using Spring Tool Suite (Eclipse)
@@ -77,11 +77,37 @@ $ cp src/main/resources/_application-local.yml src/main/resources/application-lo
 
 See see (SampleDataConfig)[src/main/java/gov/usds/case_issues/config/SampleDataConfig.java] for more insight.
 
+### Loading Data into a running application
+
+If you have successfully started the application with the `dev` profile and don't want to mess
+with the profiles and restart just to see some data, this command should get you started:
+
+   curl -i -X PUT -u service:service -HContent-type:text/csv --data-binary '@sample_data/cases.csv' localhost:8080/api/cases/OTHER/WEIRD/SILLY
+
+If the data uses a non-default key for the receipt number or case creation date, or a non-standard
+format for the creation date, you can save upload configurations as a dictionary in the application
+properties under `web-customization.data-formats` like this:
+
+    web-customization:
+        data-formats:
+            my-format:
+                receipt-number-key: caseIdString
+                creation-date-key: case-was-created-at
+                creation-date-format: "EEE MMM dd yyyy"
+
+Then refer to that format in the upload using the `uploadSchema` request parameter:
+
+   curl -i -X PUT -u service:service -HContent-type:text/csv --data-binary '@sample_data/cases.csv' localhost:8080/api/cases/OTHER/WEIRD/SILLY?uploadScehma=my-format
+
 ## Updating a dependency
 
-1. Update dependency in (build.grade)[build.gradle]
+1. Update the dependency in [build.gradle](../build.gradle#L21)
 2. Update the lock file with `./gradlew dependencies --write-locks`
 3. Rebuild the project with `./gradlew build`
+
+# Running the Application Locally
+
+Once you have started your local server, this information will help you get started experimenting with it.
 
 ## Exploring the API
 
@@ -92,3 +118,28 @@ intended for administrative and testing purposes, and the main customer-facing A
 The `resources` API uses the HAL browser, which can be found at http://localhost:8080/resources.
 
 The main API has an OpenAPI specification, and can be viewed at http://localhost:8080/swagger-ui.html.
+
+## Authentication and Authorization
+
+By default (unless you override this in `application-local.yml`) there are three users available
+when the `dev` profile is activated: `admin`, `boring_user` and `service`. All of them have their
+username as their password, and can be used either through the default form-based login page
+(at `/login`) or with HTTP Basic Authentication (e.g. `curl -u admin:admin ...`). Their permissions are:
+
+* `admin`: all `/resource` operations, and all `/api` operations except for the PUT endpoint that
+  updates the issue list.
+* `boring_user`: all `/api` operations except for the PUT endpoint that updates the issue list.
+* `service`: _only_ the PUT endpoint that updates the issue list.
+
+All unsafe operations require a CSRF token tied to the user's current session. (Arguably, this
+makes HTTP Basic Authentication somewhat useless even in the development environment—patches
+are welcome!)
+
+To obtain the CSRF token for your current session, you should send a GET to `/csrf`, which will return
+the token and the acceptable ways of submitting it on unsafe requests (a header and a form parameter,
+of which only the header is likely useful in this context).
+
+The CSRF token will be automatically read and used by the Swagger UI at `/swagger-ui.html`, but not by
+the HAL browser at `/resources`. However, the HAL browser has an entry field for "Custom Request Headers"
+at the  top of the screen: simply paste your desired CSRF header (probably something along the lines
+of `X-CSRF-TOKEN: abcd-ef01234-567890`) into that text area before making an unsafe request.

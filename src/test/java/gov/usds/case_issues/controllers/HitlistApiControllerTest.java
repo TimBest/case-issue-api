@@ -1,5 +1,6 @@
 package gov.usds.case_issues.controllers;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -101,24 +102,77 @@ public class HitlistApiControllerTest extends ControllerTestBase {
 	@Test
 	@WithMockUser(authorities = "UPDATE_ISSUES")
 	public void putJson_emptyList_accepted() throws Exception {
-		MockHttpServletRequestBuilder jsonPut = put("/api/cases/{caseManagementSystemTag}/{caseTypeTag}/{issueTag}", VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "WONKY")
+		MockHttpServletRequestBuilder jsonPut = put(API_PATH + "{issueTag}", VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "WONKY")
 			.contentType(MediaType.APPLICATION_JSON)
+			.with(csrf())
 			.content("[]");
 		perform(jsonPut).andExpect(status().isAccepted());
 	}
 
 	@Test
 	@WithMockUser(authorities = "UPDATE_ISSUES")
+	public void putJson_emptyListNoCsrf_forbidden() throws Exception {
+		MockHttpServletRequestBuilder jsonPut = put(API_PATH + "{issueTag}", VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "WONKY")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("[]");
+		perform(jsonPut).andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(authorities = "UPDATE_ISSUES")
 	public void putCsv_emptyList_accepted() throws Exception {
-		MockHttpServletRequestBuilder jsonPut = put("/api/cases/{caseManagementSystemTag}/{caseTypeTag}/{issueTag}", VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "WONKY")
+		MockHttpServletRequestBuilder jsonPut = put(API_PATH + "{issueTag}", VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "WONKY")
 			.contentType("text/csv")
+			.with(csrf())
 			.content("header1,header2\n");
 		perform(jsonPut).andExpect(status().isAccepted());
 	}
 
+	@Test
+	@WithMockUser(authorities = "UPDATE_ISSUES")
+	public void putCsv_singleCase_accepted() throws Exception {
+		MockHttpServletRequestBuilder jsonPut = put(API_PATH + "{issueTag}", VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "WONKY")
+			.contentType("text/csv")
+			.with(csrf())
+			.content(
+				"receiptNumber,creationDate,caseAge,channelType,caseState,i90SP,caseStatus,applicationReason,caseId,caseSubstatus\n" +
+				"FKE5250608,2014-08-29T00:00:00-04:00,1816,Pigeon,Happy,true,Eschewing Obfuscation,Boredom,43375,Scrutinizing\n"
+			);
+		perform(jsonPut).andExpect(status().isAccepted());
+	}
+
+	@Test
+	@WithMockUser(authorities = "UPDATE_ISSUES")
+	public void putCsv_invalidCreationDate_badRequest() throws Exception {
+		MockHttpServletRequestBuilder jsonPut = put("/api/cases/{caseManagementSystemTag}/{caseTypeTag}/{issueTag}", VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "WONKY")
+			.contentType("text/csv")
+			.with(csrf())
+			.content(
+				"receiptNumber,creationDate,caseAge,channelType,caseState,i90SP,caseStatus,applicationReason,caseId,caseSubstatus\n" +
+				"FKE5250608,NOT A DATE,1816,Pigeon,Happy,true,Eschewing Obfuscation,Boredom,43375,Scrutinizing\n"
+			);
+		perform(jsonPut).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	public void search_noCases_emptyResult() throws Exception {
+		perform(doSearch(VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "abcde"))
+			.andExpect(status().isOk())
+			.andExpect(content().json("[]", true));
+	}
+
+	@Test
+	public void search_invalidInput_badRequest() throws Exception {
+		perform(doSearch(VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "ab cde"))
+			.andExpect(status().isBadRequest())
+		;
+		perform(doSearch(VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "ab\ncde"))
+			.andExpect(status().isBadRequest())
+		;
+	}
 	/**
 	 * Create some data on our default case type!
-	 * 
+	 *
 	 * 1 case that has 1 issue and is currently active
 	 * 1 case that has 1 issue and is currently snoozed
 	 */
@@ -131,6 +185,9 @@ public class HitlistApiControllerTest extends ControllerTestBase {
 		_dataService.snoozeCase(case2);
 	}
 
+	private static MockHttpServletRequestBuilder doSearch(String cmsTag, String ctTag, String queryString) {
+		return get(API_PATH + "search", cmsTag, ctTag).param("query", queryString);
+	}
 	private static MockHttpServletRequestBuilder getActive(String cmsTag, String ctTag) {
 		return get(API_PATH + "active", cmsTag, ctTag);
 	}

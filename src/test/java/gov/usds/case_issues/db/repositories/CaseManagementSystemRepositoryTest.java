@@ -1,5 +1,6 @@
 package gov.usds.case_issues.db.repositories;
 
+import static gov.usds.case_issues.test_util.Assert.assertInstantOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -42,14 +43,14 @@ public class CaseManagementSystemRepositoryTest extends CaseIssueApiTestBase {
 		Instant startTime = new Date().toInstant();
 		repo.save(new CaseManagementSystem(DUMMY_TAG, DUMMY_NAME, DUMMY_DESC));
 		CaseManagementSystem found = repo.findAll().iterator().next();
-		assertEquals(DUMMY_TAG, found.getCaseManagementSystemTag());
+		assertEquals(DUMMY_TAG, found.getExternalId());
 		assertEquals(DUMMY_NAME, found.getName());
 		assertEquals(DUMMY_DESC, found.getDescription());
 		assertNotNull(found.getInternalId());
 		assertTrue(found.getInternalId().longValue() > 0);
 		assertNull(found.getCreatedBy());
-		assertTrue(startTime.isBefore(found.getCreatedAt().toInstant()));
-		Instant end = new Date().toInstant();
-		assertTrue(end.isAfter(found.getCreatedAt().toInstant()));
+		Instant createdAtInstant = found.getCreatedAt().toInstant();
+		assertInstantOrder(startTime, createdAtInstant, true);
+		assertInstantOrder(createdAtInstant, new Date().toInstant(), true);
 	}
 }

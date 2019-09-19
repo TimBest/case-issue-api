@@ -5,20 +5,22 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
 
-import gov.usds.case_issues.db.model.NoteType;
+import gov.usds.case_issues.db.model.AttachmentType;
 
 @ConfigurationProperties(prefix="sample-data", ignoreUnknownFields=false)
-@Configuration
-@Profile({"dev","test"})
+@Component
+@Lazy
+@Profile({"dev"})
 public class SampleDataConfig {
 
 	private List<SampleDataFileSpec> files = new ArrayList<>();
 	private List<CaseManagementSystemDefinition> caseManagementSystems = new ArrayList<>();;
 	private List<TaggedResource> caseTypes = new ArrayList<>();
-	private List<NoteSubtypeDefinition> noteSubtypes = new ArrayList<>();
+	private List<AttachmentSubtypeDefinition> noteSubtypes = new ArrayList<>();
 
 	public SampleDataConfig() {
 		super();
@@ -48,11 +50,11 @@ public class SampleDataConfig {
 		this.caseTypes = caseTypes;
 	}
 
-	public List<NoteSubtypeDefinition> getNoteSubtypes() {
+	public List<AttachmentSubtypeDefinition> getAttachmentSubtypes() {
 		return noteSubtypes;
 	}
 
-	public void setNoteSubtypes(List<NoteSubtypeDefinition> noteSubtypes) {
+	public void setNoteSubtypes(List<AttachmentSubtypeDefinition> noteSubtypes) {
 		this.noteSubtypes = noteSubtypes;
 	}
 
@@ -156,20 +158,20 @@ public class SampleDataConfig {
 		}
 	}
 
-	public static class NoteSubtypeDefinition extends TaggedResource {
+	public static class AttachmentSubtypeDefinition extends TaggedResource {
 		private String urlTemplate;
-		private NoteType noteType;
+		private AttachmentType noteType;
 
 		public String getUrlTemplate() {
 			return urlTemplate;
 		}
-		public NoteType getNoteType() {
+		public AttachmentType getAttachmentType() {
 			return noteType;
 		}
 		public void setUrlTemplate(String urlTemplate) {
 			this.urlTemplate = urlTemplate;
 		}
-		public void setNoteType(NoteType noteType) {
+		public void setNoteType(AttachmentType noteType) {
 			this.noteType = noteType;
 		}
 	}

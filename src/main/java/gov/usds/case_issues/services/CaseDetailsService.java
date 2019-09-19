@@ -26,7 +26,7 @@ import gov.usds.case_issues.db.repositories.TroubleCaseRepository;
 import gov.usds.case_issues.model.ApiModelNotFoundException;
 import gov.usds.case_issues.model.CaseDetails;
 import gov.usds.case_issues.model.CaseSnoozeSummaryFacade;
-import gov.usds.case_issues.model.NoteRequest;
+import gov.usds.case_issues.model.AttachmentRequest;
 import gov.usds.case_issues.model.NoteSummary;
 import gov.usds.case_issues.model.SnoozeRequest;
 
@@ -52,7 +52,7 @@ public class CaseDetailsService {
 	private CaseAttachmentService _attachmentService;
 
 	public TroubleCase findCaseByTags(String caseManagementSystemTag, String receiptNumber) {
-		CaseManagementSystem caseManagementSystem = _caseManagementSystemRepo.findByCaseManagementSystemTag(caseManagementSystemTag)
+		CaseManagementSystem caseManagementSystem = _caseManagementSystemRepo.findByExternalId(caseManagementSystemTag)
 				.orElseThrow(()->new ApiModelNotFoundException("Case Management System", caseManagementSystemTag));
 		TroubleCase mainCase = _caseRepo.findByCaseManagementSystemAndReceiptNumber(caseManagementSystem, receiptNumber)
 				.orElseThrow(()->new ApiModelNotFoundException("Case", receiptNumber));
@@ -128,7 +128,7 @@ public class CaseDetailsService {
 	}
 
 	@Transactional(readOnly=false)
-	public void annotateActiveSnooze(String caseManagementSystemTag, String receiptNumber, NoteRequest newNote) {
+	public void annotateActiveSnooze(String caseManagementSystemTag, String receiptNumber, AttachmentRequest newNote) {
 		TroubleCase mainCase = findCaseByTags(caseManagementSystemTag, receiptNumber);
 		Optional<CaseSnooze> foundSnooze = _snoozeRepo.findFirstBySnoozeCaseOrderBySnoozeEndDesc(mainCase);
 		if (snoozeIsActive(foundSnooze)) {

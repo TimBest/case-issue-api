@@ -18,6 +18,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import gov.usds.case_issues.config.DataFormatSpec;
+import gov.usds.case_issues.config.WebConfigurationProperties;
 import gov.usds.case_issues.db.model.CaseIssue;
 import gov.usds.case_issues.db.model.CaseManagementSystem;
 import gov.usds.case_issues.db.model.CaseType;
@@ -59,6 +61,8 @@ public class CaseListService {
 	private TroubleCaseRepository _caseRepo;
 	@Autowired
 	private CaseAttachmentService _attachmentService;
+	@Autowired
+	private WebConfigurationProperties _webProperties;
 
 	public List<TroubleCase> getCases(String caseManagementSystemTag, String caseTypeTag, String query) {
 		CaseGroupInfo translated = translatePath(caseManagementSystemTag, caseTypeTag);
@@ -97,11 +101,11 @@ public class CaseListService {
 				.stream()
 				.collect(Collectors.toMap(a->((String) a[0]).trim(), a->(Number) a[1]));
 	}
-	
+
 	public CaseGroupInfo translatePath(String caseManagementSystemTag, String caseTypeTag) {
-		CaseManagementSystem caseManagementSystem = _caseManagementSystemRepo.findByCaseManagementSystemTag(caseManagementSystemTag)
+		CaseManagementSystem caseManagementSystem = _caseManagementSystemRepo.findByExternalId(caseManagementSystemTag)
 				.orElseThrow(()->new ApiModelNotFoundException("Case Management System", caseManagementSystemTag));
-		CaseType caseType = _caseTypeRepo.findByCaseTypeTag(caseTypeTag)
+		CaseType caseType = _caseTypeRepo.findByExternalId(caseTypeTag)
 				.orElseThrow(()->new ApiModelNotFoundException("Case Type", caseTypeTag));
 		return new CaseGroupInfo(caseManagementSystem, caseType);
 	}
@@ -111,13 +115,13 @@ public class CaseListService {
 	 * {@link CaseIssue#getIssueType()} to the supplied list of cases.
 	 * <ul>
 	 * <li>Issues that are open for cases that are not on the list will be marked closed;</li>
- 	 * <li>Cases that are in the list and do not exist will be created and have an
- 	 *     issue of the correct type created.</li>
- 	 * <li>Cases that are in the list and already exist will have their additional data updated,
- 	 * 		and an issue created if no open issue of the correct type exists;</li>
- 	 * </ul>  
-	 * @param systemTag the {@link CaseManagementSystem#getCaseManagementSystemTag()} for the system we are updating.
-	 * @param caseTypeTag {@link CaseType#getCaseTypeTag()} for the case type we are updating.
+	 * <li>Cases that are in the list and do not exist will be created and have an
+	 *     issue of the correct type created.</li>
+	 * <li>Cases that are in the list and already exist will have their additional data updated,
+	 *     and an issue created if no open issue of the correct type exists;</li>
+	 * </ul>
+	 * @param systemTag the {@link CaseManagementSystem#getExternalId()} for the system we are updating.
+	 * @param caseTypeTag {@link CaseType#getExternalId()} for the case type we are updating.
 	 * @param issueTypeTag the type of issue we are updating.
 	 * @param newIssueCases case information for each case that has this issue as of the date for which we are uploading data.
 	 * @param eventDate the date (usually but not always {@link ZonedDateTime#now()}) to attach to this update
@@ -151,7 +155,7 @@ public class CaseListService {
 			}
 		}
 
-		LOG.debug("For PUT of {}/{}/{}, opening {} and closing {} issues; updating cases of {} existing issues", systemTag, caseTypeTag, issueTypeTag, 
+		LOG.debug("For PUT of {}/{}/{}, opening {} and closing {} issues; updating cases of {} existing issues", systemTag, caseTypeTag, issueTypeTag,
 				requestedNewIssues.size(), currentMap.size(), updatedCaseCount);
 		// terminate all the remaining issues in the current collection
 		// this could also be done directly in the database, which might not be a bad idea?
@@ -166,7 +170,7 @@ public class CaseListService {
 
 		LOG.debug("For PUT of {}/{}/{}, found {} existing cases, creating {}", systemTag, caseTypeTag, issueTypeTag,
 				existingCases.size(), newReceipts.size());
-		
+
 		List<TroubleCase> unsavedCases = new ArrayList<>();
 		// create or update cases
 		for (CaseRequest candidate : requestedNewIssues) {
@@ -185,7 +189,7 @@ public class CaseListService {
 		}
 		// slightly dumb bit of DRY factory work
 		Function<? super TroubleCase, ? extends CaseIssue> createIssue = tc -> new CaseIssue(tc, issueTypeTag, eventDate);
-		
+
 		// well this is ugly
 		Iterable<TroubleCase> newlySavedCases = _caseRepo.saveAll(unsavedCases);
 		List<CaseIssue> newIssues = new ArrayList<>();
@@ -201,6 +205,17 @@ public class CaseListService {
 				newIssues.stream()
 			).collect(Collectors.toSet())
 		);
+	}
+
+	public DataFormatSpec getUploadFormat(String uploadFormatId) {
+		if (uploadFormatId == null) {
+			return new DataFormatSpec();
+		}
+		DataFormatSpec spec = _webProperties.getDataFormats().get(uploadFormatId);
+		if (spec == null) {
+			throw new IllegalArgumentException("Not a recognized data format");
+		}
+		return spec;
 	}
 
 	private List<CaseSummary> rewrap(List<Object[]> queryResult, boolean includeNotes) {
