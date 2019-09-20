@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -147,17 +146,17 @@ public class ResourceControllerTest extends ControllerTestBase {
 	@Test
 	public void crossOriginRequests_anyOrigin_forbidden() throws Exception {
 		createFixtureEntities();
-		perform(get(getFixtureCaseManagerUrl()).header("Origin", ORIGIN_HTTP_OK))
+		doGet(getFixtureCaseManagerUrl(), ORIGIN_HTTP_OK)
 			.andExpect(status().isForbidden());
 		doCreate(CaseManagementSystem.class, taggedResourceBody("MINE4", "MyCaseManager 3.2", ""),
 				HttpStatus.FORBIDDEN, false, ORIGIN_HTTPS_OK);
-		perform(get(linkFor(TroubleCase.class)).header("Origin", ORIGIN_HTTPS_OK))
+		doGet(linkFor(TroubleCase.class), ORIGIN_HTTPS_OK)
 			.andExpect(status().isForbidden());
-		perform(get(getFixtureCaseManagerUrl()).header("Origin", ORIGIN_NOT_OK))
+		doGet(getFixtureCaseManagerUrl(), ORIGIN_NOT_OK)
 			.andExpect(status().isForbidden());
 		doCreate(CaseManagementSystem.class, taggedResourceBody("MINE4", "MyCaseManager 3.2", ""),
 				HttpStatus.FORBIDDEN, false, ORIGIN_NOT_OK);
-		perform(get(linkFor(TroubleCase.class)).header("Origin", ORIGIN_NOT_OK))
+		doGet(linkFor(TroubleCase.class), ORIGIN_NOT_OK)
 			.andExpect(status().isForbidden());
 	}
 

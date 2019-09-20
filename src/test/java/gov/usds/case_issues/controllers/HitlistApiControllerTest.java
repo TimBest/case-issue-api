@@ -83,6 +83,35 @@ public class HitlistApiControllerTest extends ControllerTestBase {
 	}
 
 	@Test
+	public void validPath_noDataOkOrigin_emptyResponses() throws Exception {
+		perform(addOrigin(getActive(VALID_CASE_MGT_SYS, VALID_CASE_TYPE), ORIGIN_HTTPS_OK))
+			.andExpect(status().isOk())
+			.andExpect(content().json("[]", true))
+		;
+		perform(addOrigin(getSnoozed(VALID_CASE_MGT_SYS, VALID_CASE_TYPE), ORIGIN_HTTP_OK))
+			.andExpect(status().isOk())
+			.andExpect(content().json("[]", true))
+		;
+		perform(addOrigin(getSummary(VALID_CASE_MGT_SYS, VALID_CASE_TYPE), ORIGIN_HTTP_OK))
+			.andExpect(status().isOk())
+			.andExpect(content().json("{}", true))
+		;
+	}
+
+	@Test
+	public void validPath_noDataBadOrigin_forbidden() throws Exception {
+		perform(addOrigin(getActive(VALID_CASE_MGT_SYS, VALID_CASE_TYPE), ORIGIN_NOT_OK))
+			.andExpect(status().isForbidden())
+		;
+		perform(addOrigin(getSnoozed(VALID_CASE_MGT_SYS, VALID_CASE_TYPE), ORIGIN_NOT_OK))
+			.andExpect(status().isForbidden())
+		;
+		perform(addOrigin(getSummary(VALID_CASE_MGT_SYS, VALID_CASE_TYPE), ORIGIN_NOT_OK))
+			.andExpect(status().isForbidden())
+		;
+	}
+
+	@Test
 	public void getActive_withData_correctResponse() throws Exception {
 		initCaseData();
 		perform(getSummary(VALID_CASE_MGT_SYS, VALID_CASE_TYPE))
@@ -107,6 +136,16 @@ public class HitlistApiControllerTest extends ControllerTestBase {
 			.with(csrf())
 			.content("[]");
 		perform(jsonPut).andExpect(status().isAccepted());
+	}
+
+	@Test
+	@WithMockUser(authorities = "UPDATE_ISSUES")
+	public void putJson_emptyListBadOrigin_forbidden() throws Exception {
+		MockHttpServletRequestBuilder jsonPut = put(API_PATH + "{issueTag}", VALID_CASE_MGT_SYS, VALID_CASE_TYPE, "WONKY")
+			.contentType(MediaType.APPLICATION_JSON)
+			.with(csrf())
+			.content("[]");
+		perform(addOrigin(jsonPut, ORIGIN_NOT_OK)).andExpect(status().isForbidden());
 	}
 
 	@Test
